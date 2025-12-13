@@ -33,10 +33,19 @@ function checkPlaywrightInstalled() {
  * Install Playwright if missing
  */
 function installPlaywright() {
+  const { isNixOS } = require('./lib/nixos');
+
   console.log('📦 Playwright not found. Installing...');
   try {
     execSync('npm install', { stdio: 'inherit', cwd: __dirname });
-    execSync('npx playwright install chromium', { stdio: 'inherit', cwd: __dirname });
+
+    // Skip browser installation on NixOS - browsers come from nixpkgs
+    if (isNixOS()) {
+      console.log('🐧 NixOS detected - skipping browser install (using system browsers)');
+    } else {
+      execSync('npx playwright install chromium', { stdio: 'inherit', cwd: __dirname });
+    }
+
     console.log('✅ Playwright installed successfully');
     return true;
   } catch (e) {
@@ -119,11 +128,24 @@ function wrapCodeIfNeeded(code) {
   // If it's just Playwright commands, wrap in full template
   if (!hasRequire) {
     return `
-const { chromium, firefox, webkit, devices } = require('playwright');
+const { chromium: _chromium, firefox, webkit, devices } = require('playwright');
 const helpers = require('./lib/helpers');
+const { getNixOSLaunchOptions } = require('./lib/nixos');
 
 // Extra headers from environment variables (if configured)
 const __extraHeaders = helpers.getExtraHeadersFromEnv();
+
+/**
+ * Wrapped chromium with NixOS auto-detection.
+ * Automatically adds executablePath on NixOS systems.
+ */
+const chromium = {
+  ..._chromium,
+  launch: async (options = {}) => {
+    const nixOptions = getNixOSLaunchOptions(options);
+    return _chromium.launch(nixOptions);
+  }
+};
 
 /**
  * Utility to merge environment headers into context options.

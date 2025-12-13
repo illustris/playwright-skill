@@ -2,6 +2,7 @@
 // Reusable utility functions for Playwright automation
 
 const { chromium, firefox, webkit } = require('playwright');
+const { getNixOSLaunchOptions } = require('./nixos');
 
 /**
  * Parse extra HTTP headers from environment variables.
@@ -36,24 +37,30 @@ function getExtraHeadersFromEnv() {
 }
 
 /**
- * Launch browser with standard configuration
+ * Launch browser with standard configuration.
+ * Automatically detects NixOS and sets executablePath for chromium.
  * @param {string} browserType - 'chromium', 'firefox', or 'webkit'
  * @param {Object} options - Additional launch options
  */
 async function launchBrowser(browserType = 'chromium', options = {}) {
-  const defaultOptions = {
+  let defaultOptions = {
     headless: process.env.HEADLESS !== 'false',
     slowMo: process.env.SLOW_MO ? parseInt(process.env.SLOW_MO) : 0,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   };
-  
+
+  // Apply NixOS-specific options for chromium
+  if (browserType === 'chromium') {
+    defaultOptions = getNixOSLaunchOptions(defaultOptions);
+  }
+
   const browsers = { chromium, firefox, webkit };
   const browser = browsers[browserType];
-  
+
   if (!browser) {
     throw new Error(`Invalid browser type: ${browserType}`);
   }
-  
+
   return await browser.launch({ ...defaultOptions, ...options });
 }
 

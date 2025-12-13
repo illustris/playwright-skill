@@ -195,6 +195,20 @@ Claude will automatically load `API_REFERENCE.md` when needed for comprehensive 
 - Playwright ^1.48.0 (installed via `npm run setup`)
 - Chromium (installed via `npm run setup`)
 
+## NixOS Support
+
+The skill automatically detects NixOS and uses Nix-packaged browsers. No manual configuration needed.
+
+**How it works:**
+- Detects NixOS via `/etc/NIXOS`
+- Uses `nix build 'nixpkgs#playwright-driver.browsers'` to get patched Chromium
+- Skips Playwright's browser download (uses system browsers instead)
+
+**Manual override (if auto-detection fails):**
+```bash
+export PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=$(nix build 'nixpkgs#playwright-driver.browsers' --no-link --print-out-paths)/chromium-*/chrome-linux/chrome
+```
+
 ## Troubleshooting
 
 **Playwright not installed?**
@@ -208,6 +222,9 @@ Verify `headless: false` is set. The skill defaults to visible browser unless he
 
 **Install all browsers?**
 Run `npm run install-all-browsers` from the skill directory.
+
+**NixOS: Browser launch fails?**
+Ensure `nix` is in PATH. First run may be slow while browsers are built.
 
 ## What is a Claude Skill?
 
