@@ -387,17 +387,31 @@ For comprehensive Playwright API documentation, see [API_REFERENCE.md](API_REFER
 - **Wait strategies:** Use `waitForURL`, `waitForSelector`, `waitForLoadState` instead of fixed timeouts
 - **Error handling:** Always use try-catch for robust automation
 - **Console output:** Use `console.log()` to track progress and show what's happening
+- **NixOS:** Works automatically - no code changes needed, all scripts use Nix-packaged Chromium
 
 ## NixOS Support
 
-The skill automatically detects NixOS and uses the Nix-packaged Chromium browser.
+The skill fully supports NixOS with zero configuration. All scripts work automatically.
 
 **How it works:**
-- Checks for `/etc/NIXOS` file
-- Uses `nix build 'nixpkgs#playwright-driver.browsers'` to get browser path
-- Automatically sets `executablePath` in launch options
+- Detects NixOS via `/etc/NIXOS` file
+- Patches `chromium.launch()` globally before running any script
+- Uses `nix build 'nixpkgs#playwright-driver.browsers'` to find Nix-packaged Chromium
+- Works with any script - inline code, files with `require('playwright')`, or helpers
 
-**Manual override:**
+**What you'll see:**
+```
+🎭 Playwright Skill - Universal Executor
+
+🐧 NixOS detected - chromium.launch() patched for Nix browsers
+
+📄 Executing file: /tmp/my-script.js
+🚀 Starting automation...
+
+NixOS detected, using: /nix/store/.../chrome-linux/chrome
+```
+
+**Manual override (if auto-detection fails):**
 ```bash
 PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/path/to/chrome \
   cd $SKILL_DIR && node run.js /tmp/my-script.js
@@ -405,7 +419,7 @@ PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/path/to/chrome \
 
 **Requirements:**
 - `nix` command must be in PATH
-- First run may take longer while browsers are built/downloaded
+- First run may take longer while browsers are built/fetched from cache
 
 ## Troubleshooting
 

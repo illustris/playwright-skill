@@ -199,6 +199,32 @@ function getContextOptionsWithHeaders(options = {}) {
 }
 
 /**
+ * Patch Playwright's chromium.launch to automatically apply NixOS options.
+ * This ensures ALL scripts work on NixOS, even those with their own require().
+ */
+function patchPlaywrightForNixOS() {
+  const { isNixOS, getNixOSLaunchOptions } = require('./lib/nixos');
+
+  if (!isNixOS()) {
+    return; // No patching needed on non-NixOS systems
+  }
+
+  try {
+    const playwright = require('playwright');
+    const originalLaunch = playwright.chromium.launch.bind(playwright.chromium);
+
+    playwright.chromium.launch = async (options = {}) => {
+      const nixOptions = getNixOSLaunchOptions(options);
+      return originalLaunch(nixOptions);
+    };
+
+    console.log('🐧 NixOS detected - chromium.launch() patched for Nix browsers\n');
+  } catch (e) {
+    // Playwright not installed yet, will be patched after installation
+  }
+}
+
+/**
  * Main execution
  */
 async function main() {
@@ -214,6 +240,9 @@ async function main() {
       process.exit(1);
     }
   }
+
+  // Patch Playwright for NixOS BEFORE running any user code
+  patchPlaywrightForNixOS();
 
   // Get code to execute
   const rawCode = getCodeToExecute();
